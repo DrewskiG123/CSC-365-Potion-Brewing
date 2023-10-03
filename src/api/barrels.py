@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from src.api import auth
 
+import sqlalchemy
+from src import database as db
+
 router = APIRouter(
     prefix="/barrels",
     tags=["barrels"],
@@ -19,20 +22,51 @@ class Barrel(BaseModel):
 
 @router.post("/deliver")
 def post_deliver_barrels(barrels_delivered: list[Barrel]):
-    """ """
+    """ Handles barrel reception (updating ml and gold) """
+    
     print(barrels_delivered)
+    
+    cost = 0
+    ml_added = 0
+
+    for barrel in barrels_delivered:
+        if barrel.quantity > 0 and barrel.sku == "SMALL_RED_BARREL":
+            cost += (barrel.price)
+            ml_added += (barrel.ml_per_barrel)
+
+    with db.engine.begin() as connection:
+        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        red_ml_held = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory"))
+        
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(gold_held - cost) 
+                                                                + ", num_red_ml = " + str(red_ml_held + ml_added) ) )
 
     return "OK"
 
 # Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    """ """
-    print(wholesale_catalog)
+    """ Returns what barrels to purchase to keep stocks up """
 
-    return [
-        {
-            "sku": "SMALL_RED_BARREL",
-            "quantity": 1,
-        }
-    ]
+    print(wholesale_catalog)
+    
+    with db.engine.begin() as connection:
+        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
+        red_potion_count = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
+
+    for barrel in wholesale_catalog:
+        if barrel.sku == "SMALL_RED_BARREL" and barrel.price < gold_held:
+            if red_potion_count < 10:
+                return [
+                    {
+                        "sku": "SMALL_RED_BARREL",
+                        "quantity": 1,
+                    }
+                ]
+            else:
+                return [
+                    {
+                        "sku": "SMALL_RED_BARREL",
+                        "quantity": 0,
+                    }
+                ]
