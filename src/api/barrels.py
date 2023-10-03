@@ -35,11 +35,11 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
             ml_added += (barrel.ml_per_barrel)
 
     with db.engine.begin() as connection:
-        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        red_ml_held = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory"))
+        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory WHERE p_key = 0"))
+        red_ml_held = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory WHERE p_key = 0"))
         
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(gold_held - cost) 
-                                                                + ", num_red_ml = " + str(red_ml_held + ml_added) ) )
+                                           + ", num_red_ml = " + str(red_ml_held + ml_added) + " WHERE p_key = 0"))
 
     return "OK"
 
@@ -51,8 +51,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
     
     with db.engine.begin() as connection:
-        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory"))
-        red_potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
+        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory WHERE p_key = 0"))
+        red_potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory WHERE p_key = 0"))
 
     for barrel in wholesale_catalog:
         if barrel.sku == "SMALL_RED_BARREL" and barrel.price < gold_held:

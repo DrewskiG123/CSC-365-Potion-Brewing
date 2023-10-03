@@ -24,8 +24,8 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     for pot in potions_delivered:
         if pot.potion_type == ([100, 0, 0, 0]): # if it's a red potion
             with db.engine.begin() as connection:
-                red_potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(red_potions_held + pot.quantity) ) )
+                red_potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory WHERE p_key = 0"))
+                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(red_potions_held + pot.quantity) + " WHERE p_key = 0"))
 
     return "OK"
 
@@ -43,7 +43,7 @@ def get_bottle_plan():
     # Initial logic: bottle all barrels into red potions.
 
     with db.engine.begin() as connection:
-        red_ml_held = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory"))
+        red_ml_held = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory WHERE p_key = 0"))
     
     ml_used = 0
     potions_gained = 0
@@ -53,7 +53,7 @@ def get_bottle_plan():
         potions_gained += 1
     
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(red_ml_held - ml_used) ) )
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(red_ml_held - ml_used) + " WHERE p_key = 0") )
 
     return [
             {
