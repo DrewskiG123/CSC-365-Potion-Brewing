@@ -22,10 +22,10 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     print(potions_delivered)
 
     for pot in potions_delivered:
-        if pot.potion_type == ([100, 0, 0, 0]):
+        if pot.potion_type == ([100, 0, 0, 0]): # if it's a red potion
             with db.engine.begin() as connection:
-                potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(potions_held + pot.quantity) ) )
+                red_potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
+                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(red_potions_held + pot.quantity) ) )
 
     return "OK"
 
