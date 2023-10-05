@@ -15,14 +15,19 @@ def get_catalog():
     # Can return a max of 20 items.
 
     with db.engine.begin() as connection:
-        red_potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory WHERE p_key = 0"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+        # result.first() is the first row of global_inventory
+        red_potions_held = result.first().num_red_potions
 
-    return [
-            {
-                "sku": "RED_POTION_0",
-                "name": "red potion",
-                "quantity": red_potions_held,
-                "price": 50,
-                "potion_type": [100, 0, 0, 0],
-            }
-        ]
+    if red_potions_held > 0:
+        return [
+                {
+                    "sku": "RED_POTION_0",
+                    "name": "red potion",
+                    "quantity": red_potions_held,
+                    "price": 50,
+                    "potion_type": [100, 0, 0, 0],
+                }
+            ]
+    else:
+        return []

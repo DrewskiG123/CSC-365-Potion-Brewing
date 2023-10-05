@@ -26,6 +26,8 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     
     print(barrels_delivered)
     
+    gold_held = -1
+    red_ml_held = -1
     cost = 0
     ml_added = 0
 
@@ -35,11 +37,13 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
             ml_added += (barrel.ml_per_barrel)
 
     with db.engine.begin() as connection:
-        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory WHERE p_key = 0"))
-        red_ml_held = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory WHERE p_key = 0"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+        # result.first() is the first row of global_inventory
+        gold_held = result.first().gold
+        red_ml_held = result.first().num_red_ml
         
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(gold_held - cost) 
-                                           + ", num_red_ml = " + str(red_ml_held + ml_added) + " WHERE p_key = 0"))
+                                           + ", num_red_ml = " + str(red_ml_held + ml_added) + " WHERE id = 0"))
 
     return "OK"
 
@@ -49,10 +53,15 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ Returns what barrels to purchase to keep stocks up """
 
     print(wholesale_catalog)
+
+    gold_held = -1
+    red_potions_held = -1
     
     with db.engine.begin() as connection:
-        gold_held = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory WHERE p_key = 0"))
-        red_potions_held = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory WHERE p_key = 0"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+        # result.first() is the first row of global_inventory
+        gold_held = result.first().gold
+        red_potions_held = result.first().num_red_potions
 
     for barrel in wholesale_catalog:
         if barrel.sku == "SMALL_RED_BARREL" and barrel.price < gold_held:
@@ -64,9 +73,4 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     }
                 ]
             else:
-                return [
-                    {
-                        "sku": "SMALL_RED_BARREL",
-                        "quantity": 0,
-                    }
-                ]
+                return []

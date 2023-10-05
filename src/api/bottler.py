@@ -32,7 +32,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                 # result.first() is the first row of global_inventory
                 red_potions_held = result.first().num_red_potions
                 amnt = pot.quantity
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(red_potions_held + pot.quantity) + " WHERE p_key = 0"))
+                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(red_potions_held + pot.quantity) + " WHERE id = 0"))
 
     return "OK", red_potions_held+amnt, "^ new potion #"
 
@@ -63,7 +63,7 @@ def get_bottle_plan():
 
     if potions_gained > 0:
         with db.engine.begin() as connection:
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(red_ml_held) + " WHERE p_key = 0") )
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(red_ml_held) + " WHERE id = 0") )
         
         return [
                 {
