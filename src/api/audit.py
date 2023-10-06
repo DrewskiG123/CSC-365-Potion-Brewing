@@ -14,9 +14,23 @@ router = APIRouter(
 
 @router.get("/inventory")
 def get_inventory():
-    """ """
+    """ Returns the current shop inventory """
+    # these should NOT get returned
+    red_potions_held = -1
+    red_ml_held = -1
+    gold_held = -1
+
+    with db.engine.begin() as connection:
+        print("inside \"with\" section\n")
+        # result.first() is the first row of global_inventory
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+        fr = result.first()
+        
+        red_potions_held = fr.num_red_potions
+        red_ml_held = fr.num_red_ml
+        gold_held = fr.gold
     
-    return {"number_of_potions": 0, "ml_in_barrels": 0, "gold": 0}
+    return {"number_of_potions": red_potions_held, "ml_in_barrels": red_ml_held, "gold": gold_held}
 
 class Result(BaseModel):
     gold_match: bool
@@ -26,7 +40,7 @@ class Result(BaseModel):
 # Gets called once a day
 @router.post("/results")
 def post_audit_results(audit_explanation: Result):
-    """ """
+    """ Displays audit results """
     print(audit_explanation)
 
     return "OK"

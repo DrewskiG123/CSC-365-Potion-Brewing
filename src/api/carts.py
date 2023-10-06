@@ -50,8 +50,9 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
 
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory WHERE id = 0"))
-        # result.first() is the first row of global_inventory
-        red_pots_held = result.first().num_red_potions
+        # fr is the first row of global_inventory
+        fr = result.first()
+        red_pots_held = fr.num_red_potions
 
     if cart_id < len(cart_lst): # if it's a valid cart
         if item_sku == "RED_POTION_0" and cart_item.quantity < red_pots_held: # only handling red potions for now

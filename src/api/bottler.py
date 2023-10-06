@@ -26,11 +26,11 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
 
     for pot in potions_delivered:
         if pot.potion_type[0] == 100: # if it's a red potion
-            print("made it in\n")
             with db.engine.begin() as connection:
                 result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-                # result.first() is the first row of global_inventory
-                red_potions_held = result.first().num_red_potions
+                # fr is the first row of global_inventory
+                fr = result.first()
+                red_potions_held = fr.num_red_potions
                 amnt = pot.quantity
                 connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(red_potions_held + pot.quantity) + " WHERE id = 0"))
 
@@ -52,8 +52,9 @@ def get_bottle_plan():
     red_ml_held = -1
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        # result.first() is the first row of global_inventory
-        red_ml_held = result.first().num_red_ml
+        # fr is the first row of global_inventory
+        fr = result.first()
+        red_ml_held = fr.num_red_ml
     
     potions_gained = 0
 

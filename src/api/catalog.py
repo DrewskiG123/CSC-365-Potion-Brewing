@@ -16,8 +16,9 @@ def get_catalog():
 
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        # result.first() is the first row of global_inventory
-        red_potions_held = result.first().num_red_potions
+        # fr is the first row of global_inventory
+        fr = result.first()
+        red_potions_held = fr.num_red_potions
 
     if red_potions_held > 0:
         return [
