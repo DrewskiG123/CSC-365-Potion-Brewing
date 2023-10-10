@@ -80,15 +80,15 @@ def get_bottle_plan():
 
     bottle_lst = [] # bottles of potions
 
-    while r_ml_held > 100: # while I have red ml to bottle
+    while r_ml_held >= 100: # while I have red ml to bottle
         r_potions_gained += 1
         r_ml_held -= 100
     
-    while g_ml_held > 100: # while I have green ml to bottle
+    while g_ml_held >= 100: # while I have green ml to bottle
         g_potions_gained += 1
         g_ml_held -= 100
     
-    while b_ml_held > 100: # while I have blue ml to bottle
+    while b_ml_held >= 100: # while I have blue ml to bottle
         b_potions_gained += 1
         b_ml_held -= 100
 
