@@ -5,6 +5,7 @@ from src import database as db
 
 router = APIRouter()
 
+prices = {"RED_POTION_0": 10, "GREEN_POTION_0": 10, "BLUE_POTION_0": 10} # dictionary of prices thats shared with carts.py
 
 @router.get("/catalog/", tags=["catalog"])
 def get_catalog():
@@ -30,7 +31,7 @@ def get_catalog():
                 "sku": "RED_POTION_0",
                 "name": "red potion",
                 "quantity": r_potions_held,
-                "price": 10,
+                "price": prices["RED_POTION_0"],
                 "potion_type": [100, 0, 0, 0],
             }
         )
@@ -40,7 +41,7 @@ def get_catalog():
                 "sku": "GREEN_POTION_0",
                 "name": "green potion",
                 "quantity": g_potions_held,
-                "price": 10,
+                "price": prices["GREEN_POTION_0"],
                 "potion_type": [0, 100, 0, 0],
             }
         )
@@ -50,7 +51,7 @@ def get_catalog():
                 "sku": "BLUE_POTION_0",
                 "name": "blue potion",
                 "quantity": b_potions_held,
-                "price": 10,
+                "price": prices["BLUE_POTION_0"],
                 "potion_type": [0, 0, 100, 0],
             }
         )
