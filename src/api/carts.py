@@ -11,12 +11,11 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
+class CartItem(BaseModel):
+    quantity: int
 
 class NewCart(BaseModel):
     customer: str
-    cart_id: int
-    item_type: str
-    amount: int
 
 cart_lst = []
 id_num = 0
@@ -27,45 +26,42 @@ def create_cart(new_cart: NewCart):
     global cart_lst
     global id_num
     
-    new_cart.cart_id = id_num
     cart_lst.append(new_cart)
     id_num += 1 # increments id so they don't overlap
 
-    return {"cart_id": id_num}
-
+    return {"cart_id": id_num-1}
 
 @router.get("/{cart_id}")
 def get_cart(cart_id: int):
     """ Grabs a cart from the list based on index (cart_id) """
     return cart_lst[cart_id]
 
-
-class CartItem(BaseModel):
-    quantity: int
-
-
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ Updates the cart with the desired commoditites """
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory WHERE id = 0"))
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory WHERE id = 0"))
         # fr is the first row of global_inventory
         fr = result.first()
-        red_pots_held = fr.num_red_potions
+        r_pots_held = fr.num_red_potions
+        g_pots_held = fr.num_green_potions
+        b_pots_held = fr.num_blue_potions
 
     if cart_id < len(cart_lst): # if it's a valid cart
-        if item_sku == "RED_POTION_0" and cart_item.quantity < red_pots_held: # only handling red potions for now
-            cur_cart = cart_lst[cart_id]
-            cur_cart.item_type = "RED_POTION_0"
-            cur_cart.amount = cart_item.quantity
+        cur_cart = cart_lst[cart_id]
+
+        if item_sku == "RED_POTION_0" and cart_item.quantity <= r_pots_held:
+            return "OK"
+        elif item_sku == "GREEN_POTION_0" and cart_item.quantity <= g_pots_held:
+            return "OK"
+        elif item_sku == "BLUE_POTION_0" and cart_item.quantity <= b_pots_held:
             return "OK"
         else:
-            return "NOT ENOUGH STOCK"
+            return "ERROR PROCESSING CART"
     else:
-        return "INVALID CART"
+        return "INVALID CART ID"
         
-
 class CartCheckout(BaseModel):
     payment: str
 
@@ -73,4 +69,5 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ Complete customer transaction """
     cur_cart = cart_lst[cart_id]
-    return {"total_potions_bought":  cur_cart.amount, "total_gold_paid": int(cart_checkout.payment)}
+    
+    return {"total_potions_bought": cur_cart.item.quantity, "total_gold_paid": int(cart_checkout.payment)}
