@@ -149,40 +149,41 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         need_b = True
         needed += 1
 
-    gold_per_color = gold_held//needed
-    for barrel in wholesale_catalog:
-        if barrel.potion_type[0] == 1 and barrel.price < gold_per_color and barrel.price < gold_held and need_r == True: # if its an affordable red barrel
-            purchase_plan.append(
-                {
-                    "sku":barrel.sku,
-                    "ml_per_barrel": barrel.ml_per_barrel,
-                    "potion_type": barrel.potion_type,
-                    "price": barrel.price,
-                    "quantity": 1
-                })
-            gold_held -= barrel.price
-            need_r = False
-        elif barrel.potion_type[1] == 1 and barrel.price < gold_per_color and barrel.price < gold_held and need_g == True: # if its an affordable green barrel
-            purchase_plan.append(
-                {
-                    "sku":barrel.sku,
-                    "ml_per_barrel": barrel.ml_per_barrel,
-                    "potion_type": barrel.potion_type,
-                    "price": barrel.price,
-                    "quantity": 1
-                })
-            gold_held -= barrel.price
-            need_g = False
-        elif barrel.potion_type[2] == 1 and barrel.price < gold_per_color and barrel.price < gold_held and need_b == True: # if its an affordable blue barrel
-            purchase_plan.append({
-                    "sku":barrel.sku,
-                    "ml_per_barrel": barrel.ml_per_barrel,
-                    "potion_type": barrel.potion_type,
-                    "price": barrel.price,
-                    "quantity": 1
-                })
-            gold_held -= barrel.price
-            need_b = False
+    if needed > 0: # if some barrels are needed
+        gold_per_color = gold_held//needed
+        for barrel in wholesale_catalog:
+            if barrel.potion_type[0] == 1 and barrel.price < gold_per_color and barrel.price < gold_held and need_r == True: # if its an affordable red barrel
+                purchase_plan.append(
+                    {
+                        "sku":barrel.sku,
+                        "ml_per_barrel": barrel.ml_per_barrel,
+                        "potion_type": barrel.potion_type,
+                        "price": barrel.price,
+                        "quantity": 1
+                    })
+                gold_held -= barrel.price
+                need_r = False
+            elif barrel.potion_type[1] == 1 and barrel.price < gold_per_color and barrel.price < gold_held and need_g == True: # if its an affordable green barrel
+                purchase_plan.append(
+                    {
+                        "sku":barrel.sku,
+                        "ml_per_barrel": barrel.ml_per_barrel,
+                        "potion_type": barrel.potion_type,
+                        "price": barrel.price,
+                        "quantity": 1
+                    })
+                gold_held -= barrel.price
+                need_g = False
+            elif barrel.potion_type[2] == 1 and barrel.price < gold_per_color and barrel.price < gold_held and need_b == True: # if its an affordable blue barrel
+                purchase_plan.append({
+                        "sku":barrel.sku,
+                        "ml_per_barrel": barrel.ml_per_barrel,
+                        "potion_type": barrel.potion_type,
+                        "price": barrel.price,
+                        "quantity": 1
+                    })
+                gold_held -= barrel.price
+                need_b = False
 
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(gold_held) + " WHERE id = 0"))
