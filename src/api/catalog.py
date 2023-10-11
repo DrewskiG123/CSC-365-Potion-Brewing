@@ -5,7 +5,11 @@ from src import database as db
 
 router = APIRouter()
 
-prices = {"RED_POTION_0": 10, "GREEN_POTION_0": 10, "BLUE_POTION_0": 10} # dictionary of prices thats shared with carts.py
+prices = { # dictionary of prices thats shared with carts.py
+    "RED_POTION_0": 10, 
+    "GREEN_POTION_0": 10, 
+    "BLUE_POTION_0": 10
+}
 
 @router.get("/catalog/", tags=["catalog"])
 def get_catalog():
