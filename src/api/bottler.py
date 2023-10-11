@@ -49,12 +49,14 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
 def get_bottle_plan():
     """
     Go from barrel to bottle.
+    Each bottle has a quantity of what proportion of red, blue, and
+    green potion to add.
+    Expressed in integers from 1 to 100 that must sum up to 100.
+    Initial logic: bottle all barrels into red potions.
     """
-
     # Each bottle has a quantity of what proportion of red, blue, and
     # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
-
     # Initial logic: bottle all barrels into red potions.
 
     r_ml_held = -1
@@ -78,19 +80,19 @@ def get_bottle_plan():
         r_potions_gained += 1
         r_ml_held -= 100
     
+    if r_potions_gained > 0:
+        bottle_lst.append({"potion_type": [100, 0, 0, 0], "quantity": r_potions_gained})
+    
     while g_ml_held >= 100: # while I have green ml to bottle
         g_potions_gained += 1
         g_ml_held -= 100
+
+    if g_potions_gained > 0:
+        bottle_lst.append({"potion_type": [0, 100, 0, 0], "quantity": g_potions_gained})
     
     while b_ml_held >= 100: # while I have blue ml to bottle
         b_potions_gained += 1
         b_ml_held -= 100
-
-    if r_potions_gained > 0:
-        bottle_lst.append({"potion_type": [100, 0, 0, 0], "quantity": r_potions_gained})
-    
-    if g_potions_gained > 0:
-        bottle_lst.append({"potion_type": [0, 100, 0, 0], "quantity": g_potions_gained})
     
     if b_potions_gained > 0:
         bottle_lst.append({"potion_type": [0, 0, 100, 0], "quantity": b_potions_gained})
