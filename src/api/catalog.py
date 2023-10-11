@@ -18,18 +18,40 @@ def get_catalog():
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         # fr is the first row of global_inventory
         fr = result.first()
-        red_potions_held = fr.num_red_potions
+        r_potions_held = fr.num_red_potions
+        g_potions_held = fr.num_green_potions
+        b_potions_held = fr.num_blue_potions
 
     ret_lst = []
 
-    if red_potions_held > 0:
+    if r_potions_held > 0:
         ret_lst.append(
             {
                 "sku": "RED_POTION_0",
                 "name": "red potion",
-                "quantity": red_potions_held,
+                "quantity": r_potions_held,
                 "price": 10,
                 "potion_type": [100, 0, 0, 0],
+            }
+        )
+    if g_potions_held > 0:
+        ret_lst.append(
+            {
+                "sku": "GREEN_POTION_0",
+                "name": "green potion",
+                "quantity": g_potions_held,
+                "price": 10,
+                "potion_type": [0, 100, 0, 0],
+            }
+        )
+    if b_potions_held > 0:
+        ret_lst.append(
+            {
+                "sku": "BLUE_POTION_0",
+                "name": "blue potion",
+                "quantity": b_potions_held,
+                "price": 10,
+                "potion_type": [0, 0, 100, 0],
             }
         )
 
