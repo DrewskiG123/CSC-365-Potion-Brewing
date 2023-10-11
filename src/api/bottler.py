@@ -21,32 +21,26 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ Handling global inventory after bottling """
     print(potions_delivered)
 
-    r_potions_held = -1 # if this is returned something is wrong
-    r_amnt = 0
-    g_potions_held = -1
-    g_amnt = 0
-    b_potions_held = -1
-    b_amnt = 0
+    r_pots = 0
+    g_pots = 0
+    b_pots = 0
 
     for pot in potions_delivered:
         if pot.potion_type[0] == 100: # if it's a red potion
-            r_amnt = pot.quantity
+            r_pots = pot.quantity
         if pot.potion_type[1] == 100: # if it's a green potion
-            g_amnt = pot.quantity
+            g_pots = pot.quantity
         if pot.potion_type[2] == 100: # if it's a blue potion
-            b_amnt = pot.quantity
+            b_pots = pot.quantity
     
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        # fr is the first row of global_inventory
-        fr = result.first()
-        r_potions_held = fr.num_red_potions
-        g_potions_held = fr.num_green_potions
-        b_potions_held = fr.num_blue_potions
-
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(r_potions_held+r_amnt) + " WHERE id = 0") )
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = " + str(g_potions_held+g_amnt) + " WHERE id = 0") )
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_potions = " + str(b_potions_held+b_amnt) + " WHERE id = 0") )
+        connection.execute(sqlalchemy.text(
+            "UPDATE global_inventory SET num_red_ml = num_red_ml - " + str(r_pots*100) + ",\n"+
+            "   num_green_ml = num_green_ml - " + str(g_pots*100) + ",\n"+
+            "   num_blue_ml = num_blue_ml - " + str(b_pots*100) + ",\n"+
+            "   num_red_potions = num_red_potions + " + str(r_pots) + ",\n"+
+            "   num_green_potions = num_green_potions + " + str(g_pots) + ",\n"+
+            "   num_blue_potions = num_blue_potions + " + str(b_pots) + " WHERE id = 0") )
 
     return "OK"
 
@@ -100,11 +94,5 @@ def get_bottle_plan():
     
     if b_potions_gained > 0:
         bottle_lst.append({"potion_type": [0, 0, 100, 0], "quantity": b_potions_gained})
-
-    with db.engine.begin() as connection: # this shouldn't change the value as long as no potions were bottled for a 
-        # specific color, it'll just updat them with the same value
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = " + str(r_ml_held) + " WHERE id = 0") )
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_ml = " + str(g_ml_held) + " WHERE id = 0") )
-        connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_ml = " + str(b_ml_held) + " WHERE id = 0") )
     
     return bottle_lst
