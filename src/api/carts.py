@@ -111,34 +111,34 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     green = "GREEN_POTION_0"
     blue = "BLUE_POTION_0"
 
-    payment_offered = int(cart_checkout.payment)
+    # payment_offered = int(cart_checkout.payment)
 
     i = 0
     for sku in cur_items: # for every item type purchased
         cost_of_cart += (catalog.prices[sku] * cur_q_lst[i]) # increase cost by price*amount
         i += 1 # advance index of quantity list to match item
 
-    if cost_of_cart > payment_offered:
-        return "NOT ENOUGH PAYMENT", "COST", cost_of_cart, "OFFERED", payment_offered
-    else: # update table and return
-        with db.engine.begin() as connection:
-            result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory WHERE id = 0"))
-            # fr is the first row of global_inventory
-            fr = result.first()
-            gold_held = fr.gold
-            r_pots_held = fr.num_red_potions
-            g_pots_held = fr.num_green_potions
-            b_pots_held = fr.num_blue_potions
+    # if cost_of_cart > payment_offered:
+    #     return "NOT ENOUGH PAYMENT", "COST", cost_of_cart, "OFFERED", payment_offered
+    # else: # update table and return
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory WHERE id = 0"))
+        # fr is the first row of global_inventory
+        fr = result.first()
+        gold_held = fr.gold
+        r_pots_held = fr.num_red_potions
+        g_pots_held = fr.num_green_potions
+        b_pots_held = fr.num_blue_potions
 
-            if red in cur_items:
-                r_amnt = cur_q_lst[cur_items.index(red)]
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(r_pots_held - r_amnt) + " WHERE id = 0") )
-            if green in cur_items:
-                g_amnt = cur_q_lst[cur_items.index(green)]
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = " + str(g_pots_held - g_amnt) + " WHERE id = 0") )
-            if blue in cur_items:
-                b_amnt = cur_q_lst[cur_items.index(blue)]
-                connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_potions = " + str(b_pots_held - b_amnt) + " WHERE id = 0") )
-            # gold
-            connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(gold_held + payment_offered) + " WHERE id = 0") )   
-        return {"total_potions_bought": sum(cur_q_lst), "total_gold_paid": payment_offered}
+        if red in cur_items:
+            r_amnt = cur_q_lst[cur_items.index(red)]
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = " + str(r_pots_held - r_amnt) + " WHERE id = 0") )
+        if green in cur_items:
+            g_amnt = cur_q_lst[cur_items.index(green)]
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_green_potions = " + str(g_pots_held - g_amnt) + " WHERE id = 0") )
+        if blue in cur_items:
+            b_amnt = cur_q_lst[cur_items.index(blue)]
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_blue_potions = " + str(b_pots_held - b_amnt) + " WHERE id = 0") )
+        # gold
+        connection.execute(sqlalchemy.text("UPDATE global_inventory SET gold = " + str(gold_held + cost_of_cart) + " WHERE id = 0") )   
+        return {"total_potions_bought": sum(cur_q_lst), "total_gold_paid": cart_checkout.payment}
