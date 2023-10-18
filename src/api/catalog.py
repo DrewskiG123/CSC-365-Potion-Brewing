@@ -12,17 +12,17 @@ def get_catalog():
     """
     # Can return a max of 20 items.
     print("Get Catalog")
-    ret_lst = []
+    catalog = []
 
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT name, sku, potion_type, inventory, price FROM potions"))
         for name, sku, potion_type, inventory, price in result:
             print(f"{{\n\tname: {name},\n\tsku: {sku},\n\ttype: {potion_type},\n\tinventory: {inventory},\n\tprice: {price}\n}}")
-            ret_lst.append({
+            catalog.append({
                 "name": name, 
                 "sku": sku, 
                 "type": potion_type, 
                 "inventory": inventory, 
                 "price": price})
 
-    return ret_lst
+    return catalog
