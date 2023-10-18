@@ -20,10 +20,8 @@ def get_inventory():
     
     pot_count = 0
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT quantity FROM catalog"))
-        for quantity in result:
-            # print(quantity)
-            pot_count += quantity[0]
+        result = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM catalog"))
+        pot_count = result.first()._data[0]
         
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         fr = result.first()
