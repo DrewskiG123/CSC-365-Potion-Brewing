@@ -20,7 +20,7 @@ def get_inventory():
     inv_lst = []
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT name, sku, potion_type, inventory FROM potions"))
+        result = connection.execute(sqlalchemy.text("SELECT name, sku, potion_type, inventory FROM catalog"))
         for name, sku, potion_type, inventory in result:
             print(f"{{\n\tname: {name},\n\tsku: {sku},\n\ttype: {potion_type},\n\tinventory: {inventory}\n}}")
             inv_lst.append({
