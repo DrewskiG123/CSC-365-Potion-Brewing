@@ -35,7 +35,8 @@ def get_inventory():
         inv_lst.append({
             "red ml": fr.num_red_ml, 
             "green ml": fr.num_green_ml, 
-            "blue ml": fr.num_blue_ml, "dark ml": fr.num_dark_ml, 
+            "blue ml": fr.num_blue_ml, 
+            "dark ml": fr.num_dark_ml, 
             "gold": fr.gold})
 
     return inv_lst
