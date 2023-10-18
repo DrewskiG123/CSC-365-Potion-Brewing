@@ -16,39 +16,29 @@ router = APIRouter(
 def get_inventory():
     """ Returns the current shop inventory """
     # these should NOT get returned
-    red_potions_held = -1
-    red_ml_held = -1
-
-    green_potions_held = -1
-    green_ml_held = -1
-
-    blue_potions_held = -1
-    blue_ml_held = -1
-
-    gold_held = -1
+    print("Get Inventory")
+    inv_lst = []
 
     with db.engine.begin() as connection:
-        print("inside \"with\" section\n")
-        # result.first() is the first row of global_inventory
+        result = connection.execute(sqlalchemy.text("SELECT name, sku, potion_type, inventory FROM potions"))
+        for name, sku, potion_type, inventory in result:
+            print(f"{{\n\tname: {name},\n\tsku: {sku},\n\ttype: {potion_type},\n\tinventory: {inventory}\n}}")
+            inv_lst.append({
+                "name": name, 
+                "sku": sku, 
+                "type": potion_type, 
+                "inventory": inventory})
+        
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         fr = result.first()
-        
-        red_potions_held = fr.num_red_potions
-        red_ml_held = fr.num_red_ml
+        print(f"{{\n\tred ml: {fr.num_red_ml},\n\tgreen ml: {fr.num_green_ml},\n\tblue ml: {fr.num_blue_ml},\n\tdark ml: {fr.num_dark_ml}\n\tgold: {fr.gold}\n}}")
+        inv_lst.append({
+            "red ml": fr.num_red_ml, 
+            "green ml": fr.num_green_ml, 
+            "blue ml": fr.num_blue_ml, "dark ml": fr.num_dark_ml, 
+            "gold": fr.gold})
 
-        green_potions_held = fr.num_green_potions
-        green_ml_held = fr.num_green_ml
-
-        blue_potions_held = fr.num_blue_potions
-        blue_ml_held = fr.num_blue_ml
-
-        gold_held = fr.gold
-    
-    return [
-        {"number_of_red_potions": red_potions_held, "ml_in_barrels": red_ml_held},
-        {"number_of_green_potions": green_potions_held, "ml_in_barrels": green_ml_held},
-        {"number_of_blue_potions": blue_potions_held, "ml_in_barrels": blue_ml_held},
-        {"gold": gold_held}]
+    return inv_lst
 
 class Result(BaseModel):
     gold_match: bool
