@@ -17,29 +17,23 @@ def get_inventory():
     """ Returns the current shop inventory """
     # these should NOT get returned
     print("Get Inventory")
-    inv_lst = []
-
+    
+    pot_count = 0
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT name, sku, potion_type, inventory FROM catalog"))
-        for name, sku, potion_type, inventory in result:
-            print(f"{{\n\tname: {name},\n\tsku: {sku},\n\ttype: {potion_type},\n\tinventory: {inventory}\n}}")
-            inv_lst.append({
-                "name": name, 
-                "sku": sku, 
-                "type": potion_type, 
-                "inventory": inventory})
+        result = connection.execute(sqlalchemy.text("SELECT quantity FROM catalog"))
+        for quantity in result:
+            # print(quantity)
+            pot_count += quantity[0]
         
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         fr = result.first()
-        print(f"{{\n\tred ml: {fr.num_red_ml},\n\tgreen ml: {fr.num_green_ml},\n\tblue ml: {fr.num_blue_ml},\n\tdark ml: {fr.num_dark_ml}\n\tgold: {fr.gold}\n}}")
-        inv_lst.append({
-            "red ml": fr.num_red_ml, 
-            "green ml": fr.num_green_ml, 
-            "blue ml": fr.num_blue_ml, 
-            "dark ml": fr.num_dark_ml, 
-            "gold": fr.gold})
-
-    return inv_lst
+        print(f"{{\n\tpotions: {pot_count},\n\tred ml: {fr.num_red_ml},\n\tgreen ml: {fr.num_green_ml},\n\tblue ml: {fr.num_blue_ml},\n\tdark ml: {fr.num_dark_ml}\n\tgold: {fr.gold}\n}}")
+            
+    return {
+        "gold": fr.gold,
+        "total potions": pot_count,
+        "total ml": (fr.num_red_ml + fr.num_green_ml + fr.num_blue_ml + fr.num_dark_ml)
+    }
 
 class Result(BaseModel):
     gold_match: bool
