@@ -51,13 +51,13 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
             WHERE id = 0;
             
             UPDATE catalog
-            SET inventory = 
+            SET quantity = 
                 CASE id
-                    WHEN 1 THEN inventory + :r_pots
-                    WHEN 2 THEN inventory + :g_pots
-                    WHEN 3 THEN inventory + :b_pots
-                    WHEN 4 THEN inventory + :d_pots
-                    WHEN 5 THEN inventory + :p_pots
+                    WHEN 1 THEN quantity + :r_pots
+                    WHEN 2 THEN quantity + :g_pots
+                    WHEN 3 THEN quantity + :b_pots
+                    WHEN 4 THEN quantity + :d_pots
+                    WHEN 5 THEN quantity + :p_pots
                 END
             WHERE  id IN (1, 2, 3, 4, 5);
         """), [{"r_mls": r_pots*100, "g_mls": g_pots*100, "b_mls": b_pots*100, "d_mls": d_pots*100, "p_mls": p_pots*50, 

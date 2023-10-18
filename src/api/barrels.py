@@ -77,7 +77,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     
     with db.engine.begin() as connection:
         glbl_inv = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        ctlg = connection.execute(sqlalchemy.text("SELECT sku, inventory FROM catalog"))
+        ctlg = connection.execute(sqlalchemy.text("SELECT sku, quantity FROM catalog"))
         # fr is the first row of global_inventory
         fr = glbl_inv.first()
         r_ml_held = fr.num_red_ml
@@ -86,16 +86,16 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         d_ml_held = fr.num_dark_ml
         gold_held = fr.gold
 
-        for sku, inventory in ctlg:
+        for sku, quantity in ctlg:
             match sku:
                 case "RED_POTION":
-                    r_potions_held = inventory
+                    r_potions_held = quantity
                 case "GREEN_POTION":
-                    g_potions_held = inventory
+                    g_potions_held = quantity
                 case "BLUE_POTION":
-                    b_potions_held = inventory
+                    b_potions_held = quantity
                 case "DARK_POTION":
-                    d_potions_held = inventory
+                    d_potions_held = quantity
 
     purchase_plan = []
 
