@@ -28,7 +28,7 @@ create table
     sku text null,
     name text not null default 'Custom'::text,
     price integer null,
-    inventory integer null,
+    quantity integer null,
     potion_type integer[] null,
     constraint catalog_pkey primary key (id),
     constraint catalog_id_key unique (id)
