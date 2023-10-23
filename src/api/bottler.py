@@ -65,7 +65,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     return "OK"
 
 class State(BaseModel):
-    ''' current shop resource state'''
+    '''current shop resource state'''
     red_ml: int
     green_ml: int
     blue_ml: int
