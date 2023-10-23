@@ -18,52 +18,69 @@ class PotionInventory(BaseModel):
 
 @router.post("/deliver")
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
-    """ Handling global inventory after bottling """
+    """ Handling inventory after bottling """
     print(potions_delivered)
 
-    r_pots = 0
-    g_pots = 0
-    b_pots = 0
-    d_pots = 0
-    # custom pots
-    p_pots = 0
+    # price per ml by color
+    r_ppm = .5  # so a red potion is .5 * 100 = 50 gold
+    g_ppm = .5  # same for green
+    b_ppm = .6  # blue is .6 * 100 = 60 gold
+    d_ppm = .65 # dark is .65 * 100 = 65 gold
+    # other potions will be multiplied by these constants to get their sale price
+    #                     [r , g, b , d]   (r_ml * r_ppm) + (b_ml * b_ppm)
+    # ex: Purple potion = [50, 0, 50, 0], so (50 * .5)    +   (50 * .6) = 25 + 30 = 55, 
+    # so purple will cost 55 gold
 
-    for pot in potions_delivered:
-        match pot.potion_type:
-            case [100,0,0,0]:# if it's a red potion
-                r_pots = pot.quantity
-            case [0,100,0,0]:# if it's a green potion
-                g_pots = pot.quantity
-            case [0,0,100,0]:# if it's a blue potion
-                b_pots = pot.quantity
-            case [0,0,0,100]:# if it's a dark potion
-                d_pots = pot.quantity
-            case [50,0,50,0]:# if it's a purple potion
-                p_pots = pot.quantity
-    
-    with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(
-        """ UPDATE global_inventory 
-            SET num_red_ml = num_red_ml - :r_mls - :p_mls,
-                num_green_ml = num_green_ml - :g_mls,
-                num_blue_ml = num_blue_ml - :b_mls - :p_mls,
-                num_dark_ml = num_dark_ml - :d_mls
-            WHERE id = 0;
-            
-            UPDATE catalog
-            SET quantity = 
-                CASE id
-                    WHEN 1 THEN quantity + :r_pots
-                    WHEN 2 THEN quantity + :g_pots
-                    WHEN 3 THEN quantity + :b_pots
-                    WHEN 4 THEN quantity + :d_pots
-                    WHEN 5 THEN quantity + :p_pots
-                END
-            WHERE  id IN (1, 2, 3, 4, 5);
-        """), [{"r_mls": r_pots*100, "g_mls": g_pots*100, "b_mls": b_pots*100, "d_mls": d_pots*100, "p_mls": p_pots*50, 
-                "r_pots": r_pots, "g_pots": g_pots, "b_pots": b_pots, "d_pots": d_pots, "p_pots": p_pots}])
+    r_ml_used = 0
+    g_ml_used = 0
+    b_ml_used = 0
+    d_ml_used = 0
+    profit = 0
+
+    with db.engine.begin() as connection: # this should work regardless of how many pots or what type
+        for pot in potions_delivered:
+            r_ml_used += pot.potion_type[0] * pot.quantity  # red ml used in these pots
+            g_ml_used += pot.potion_type[1] * pot.quantity  # green ml used in these pots
+            b_ml_used += pot.potion_type[2] * pot.quantity  # blue ml used in these pots
+            d_ml_used += pot.potion_type[3] * pot.quantity  # dark ml used in these pots
+            connection.execute(sqlalchemy.text(
+                "UPDATE catalog SET quantity = quantity + :add_quant WHERE potion_type = :type"), 
+                [{"add_quant": pot.quantity, "type": pot.potion_type}])
+        
+        profit += r_ml_used * r_ppm # cost of red component in these pots
+        profit += g_ml_used * g_ppm # cost of green component in these pots
+        profit += b_ml_used * b_ppm # cost of blue component in these pots
+        profit += d_ml_used * d_ppm # cost of dark component in these pots
+        
+        connection.execute(sqlalchemy.text("""
+            UPDATE global_inventory 
+            SET num_red_ml = num_red_ml - :r_ml_used,
+                num_green_ml = num_green_ml - :g_ml_used,
+                num_blue_ml = num_blue_ml - :b_ml_used,
+                num_dark_ml = num_dark_ml - :d_ml_used,
+                gold = gold + :profit
+            WHERE id = 0 """), 
+        [{"r_ml_used": r_ml_used, "g_ml_used": g_ml_used, "b_ml_used": b_ml_used, "d_ml_used": d_ml_used, "profit": profit}])
 
     return "OK"
+
+class State(BaseModel):
+    ''' current shop resource state'''
+    red_ml: int
+    green_ml: int
+    blue_ml: int
+    dark_ml: int
+    my_pots: list[PotionInventory]
+
+def mix_potions(state: State):
+    '''
+    The logic that determines the bottling plan based on my current shop state.
+    Returns the bottle plan.
+    '''
+    plan = []
+    for pot in state.my_pots:
+        print(pot)
+    return plan
 
 # Gets called 4 times a day
 @router.post("/plan")
@@ -80,65 +97,27 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
     # Initial logic: bottle all barrels into red potions.
 
-    r_ml_held = -1
-    g_ml_held = -1
-    b_ml_held = -1
-    d_ml_held = -1
-
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+        glbl_inv = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         # fr is the first row of global_inventory
-        fr = result.first()
+        fr = glbl_inv.first()
         r_ml_held = fr.num_red_ml
         g_ml_held = fr.num_green_ml
         b_ml_held = fr.num_blue_ml
         d_ml_held = fr.num_dark_ml
-    
-    r_potions_gained = 0
-    g_potions_gained = 0
-    b_potions_gained = 0
-    d_potions_gained = 0
+        
+        pots_held = []
+        ctlg = connection.execute(sqlalchemy.text("SELECT potion_type, quantity FROM catalog"))
+        for type, quant in ctlg:
+            pots_held.append({
+                "potion_type": type,
+                "quantity": quant
+            })
 
-    # custom colors (just purple for now)
-    p_potions_gained = 0
-
-    bottle_lst = [] # bottles of potions
-
-    while r_ml_held > 500: # while I have red ml to bottle
-        r_potions_gained += 1
-        r_ml_held -= 100
+    state = State(red_ml=r_ml_held, 
+                  green_ml=g_ml_held,
+                  blue_ml=b_ml_held,
+                  dark_ml=d_ml_held,
+                  my_pots=pots_held)
     
-    if r_potions_gained > 0:
-        bottle_lst.append({"potion_type": [100, 0, 0, 0], "quantity": r_potions_gained})
-    
-    while g_ml_held > 500: # while I have green ml to bottle
-        g_potions_gained += 1
-        g_ml_held -= 100
-
-    if g_potions_gained > 0:
-        bottle_lst.append({"potion_type": [0, 100, 0, 0], "quantity": g_potions_gained})
-    
-    while b_ml_held > 500: # while I have blue ml to bottle
-        b_potions_gained += 1
-        b_ml_held -= 100
-    
-    if b_potions_gained > 0:
-        bottle_lst.append({"potion_type": [0, 0, 100, 0], "quantity": b_potions_gained})
-
-    while d_ml_held > 500: # while I have dark ml to bottle
-        d_potions_gained += 1
-        d_ml_held -= 100
-    
-    if d_potions_gained > 0:
-        bottle_lst.append({"potion_type": [0, 0, 0, 100], "quantity": d_potions_gained})
-
-    # custom bottling (just purple for now)
-    while r_ml_held >= 50 and b_ml_held >= 50: # while I have ml to bottle purple potions
-        p_potions_gained += 1
-        r_ml_held -= 50
-        b_ml_held -= 50
-    
-    if p_potions_gained > 0:
-        bottle_lst.append({"potion_type": [50, 0, 50, 0], "quantity": p_potions_gained})
-    
-    return bottle_lst
+    return mix_potions(state)
