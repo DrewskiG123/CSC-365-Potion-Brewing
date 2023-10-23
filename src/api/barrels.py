@@ -60,24 +60,21 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 # Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    """ Returns what barrels to purchase to keep stocks up.
-     Larger barrels are more cost efficient. 
-     Barrels go: rMed, rSmall, gMed, gSmall, bMed, bSmall, rMini, gMini, bMini """
+    """
+    Returns what barrels to purchase to keep stocks up.
+    Larger barrels are more cost efficient. 
+    Barrels go: rMed, rSmall, gMed, gSmall, bMed, bSmall, rMini, gMini, bMini
+    """
     print(wholesale_catalog)
 
     gold_held = -1
-    r_potions_held = -1
     r_ml_held = -1
-    g_potions_held = -1
     g_ml_held = -1
-    b_potions_held = -1
     b_ml_held = -1
-    d_potions_held = -1
     d_ml_held = -1
     
     with db.engine.begin() as connection:
         glbl_inv = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        ctlg = connection.execute(sqlalchemy.text("SELECT sku, quantity FROM catalog"))
         # fr is the first row of global_inventory
         fr = glbl_inv.first()
         r_ml_held = fr.num_red_ml
@@ -85,17 +82,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         b_ml_held = fr.num_blue_ml
         d_ml_held = fr.num_dark_ml
         gold_held = fr.gold
-
-        for sku, quantity in ctlg:
-            match sku:
-                case "RED_POTION":
-                    r_potions_held = quantity
-                case "GREEN_POTION":
-                    g_potions_held = quantity
-                case "BLUE_POTION":
-                    b_potions_held = quantity
-                case "DARK_POTION":
-                    d_potions_held = quantity
 
     purchase_plan = []
 
@@ -106,16 +92,17 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     needed = 0
 
-    if r_potions_held < 10 and r_ml_held < 1000:
+    # very simple logic to buy barrels
+    if r_ml_held < 1000:
         need_r = True
         needed += 1
-    if g_potions_held < 10 and g_ml_held < 1000:
+    if g_ml_held < 1000:
         need_g = True
         needed += 1
-    if b_potions_held < 10 and b_ml_held < 1000:
+    if b_ml_held < 1000:
         need_b = True
         needed += 1
-    if d_potions_held < 10 and d_ml_held < 1000:
+    if d_ml_held < 1000:
         need_d = True
         needed += 1
 
