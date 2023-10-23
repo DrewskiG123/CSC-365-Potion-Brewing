@@ -20,17 +20,22 @@ def get_inventory():
     
     pot_count = 0
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT SUM(quantity) FROM catalog"))
-        pot_count = result.first()._data[0]
+        gold_sum = connection.execute(sqlalchemy.text("SELECT SUM(gold) FROM global_inventory"))
+        gold = gold_sum.first()._data[0]
+
+        pots = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker"))
+        pot_count = pots.first()._data[0]
         
-        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        fr = result.first()
-        print(f"{{\n\tpotions: {pot_count},\n\tred ml: {fr.num_red_ml},\n\tgreen ml: {fr.num_green_ml},\n\tblue ml: {fr.num_blue_ml},\n\tdark ml: {fr.num_dark_ml}\n\tgold: {fr.gold}\n}}")
+        ml_sum = connection.execute(sqlalchemy.text("""
+            SELECT SUM(num_red_ml + num_blue_ml + num_green_ml + num_dark_ml) FROM global_inventory"""))
+        mils = ml_sum.first()._data[0]
+        print("gold:", gold, "total pots:", pot_count, "total mls:", mils)
+        # print(f"{{\n\tpotions: {pot_count},\n\tred ml: {fr.num_red_ml},\n\tgreen ml: {fr.num_green_ml},\n\tblue ml: {fr.num_blue_ml},\n\tdark ml: {fr.num_dark_ml}\n\tgold: {fr.gold}\n}}")
             
     return {
-        "gold": fr.gold,
+        "gold": gold,
         "total potions": pot_count,
-        "total ml": (fr.num_red_ml + fr.num_green_ml + fr.num_blue_ml + fr.num_dark_ml)
+        "total ml": mils
     }
 
 class Result(BaseModel):
