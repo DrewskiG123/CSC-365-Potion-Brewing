@@ -85,7 +85,7 @@ def make_barrel_plan(r_mls: int, g_mls: int, b_mls: int, d_mls: int,
     if needed > 0: # if some barrels are needed
         gold_per_color = gold//needed
         for barrel in b_cat:
-            if barrel.price < gold_per_color and barrel.price < gold_held: 
+            if barrel.price < gold_per_color and barrel.price < gold: 
                 if barrel.potion_type[0] == 1 and need_r == True: # if its an affordable red barrel
                     need_r = False
                 elif barrel.potion_type[1] == 1 and need_g == True: # if its an affordable green barrel
