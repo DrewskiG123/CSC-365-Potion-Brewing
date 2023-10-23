@@ -57,6 +57,58 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 
     return "OK"
 
+def make_barrel_plan(r_mls: int, g_mls: int, b_mls: int, d_mls: int, 
+                     gold: int, b_cat: list[Barrel]):
+    """ currently very simple logic on how to buy barrels """
+    plan = []
+
+    need_r = False
+    need_g = False
+    need_b = False
+    need_d = False
+
+    needed = 0
+
+    if r_mls < 1000:
+        need_r = True
+        needed += 1
+    if g_mls < 1000:
+        need_g = True
+        needed += 1
+    if b_mls < 1000:
+        need_b = True
+        needed += 1
+    if d_mls < 1000:
+        need_d = True
+        needed += 1
+
+    if needed > 0: # if some barrels are needed
+        gold_per_color = gold//needed
+        for barrel in b_cat:
+            if barrel.price < gold_per_color and barrel.price < gold_held: 
+                if barrel.potion_type[0] == 1 and need_r == True: # if its an affordable red barrel
+                    need_r = False
+                elif barrel.potion_type[1] == 1 and need_g == True: # if its an affordable green barrel
+                    need_g = False
+                elif barrel.potion_type[2] == 1 and need_b == True: # if its an affordable blue barrel
+                    need_b = False
+                elif barrel.potion_type[3] == 1 and need_d == True: # if its an affordable dark barrel
+                    need_d = False
+                else:
+                    continue
+                
+                plan.append(
+                    {
+                        "sku":barrel.sku,
+                        "ml_per_barrel": barrel.ml_per_barrel,
+                        "potion_type": barrel.potion_type,
+                        "price": barrel.price,
+                        "quantity": 1
+                    })
+                gold -= barrel.price
+
+    return plan
+
 # Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
@@ -83,52 +135,4 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         d_ml_held = fr.num_dark_ml
         gold_held = fr.gold
 
-    purchase_plan = []
-
-    need_r = False
-    need_g = False
-    need_b = False
-    need_d = False
-
-    needed = 0
-
-    # very simple logic to buy barrels
-    if r_ml_held < 1000:
-        need_r = True
-        needed += 1
-    if g_ml_held < 1000:
-        need_g = True
-        needed += 1
-    if b_ml_held < 1000:
-        need_b = True
-        needed += 1
-    if d_ml_held < 1000:
-        need_d = True
-        needed += 1
-
-    if needed > 0: # if some barrels are needed
-        gold_per_color = gold_held//needed
-        for barrel in wholesale_catalog:
-            if barrel.price < gold_per_color and barrel.price < gold_held: 
-                if barrel.potion_type[0] == 1 and need_r == True: # if its an affordable red barrel
-                    need_r = False
-                elif barrel.potion_type[1] == 1 and need_g == True: # if its an affordable green barrel
-                    need_g = False
-                elif barrel.potion_type[2] == 1 and need_b == True: # if its an affordable blue barrel
-                    need_b = False
-                elif barrel.potion_type[3] == 1 and need_d == True: # if its an affordable dark barrel
-                    need_d = False
-                else:
-                    continue
-                
-                purchase_plan.append(
-                    {
-                        "sku":barrel.sku,
-                        "ml_per_barrel": barrel.ml_per_barrel,
-                        "potion_type": barrel.potion_type,
-                        "price": barrel.price,
-                        "quantity": 1
-                    })
-                gold_held -= barrel.price
-
-    return purchase_plan
+    return make_barrel_plan(r_ml_held, g_ml_held, b_ml_held, d_ml_held, gold_held, wholesale_catalog)
