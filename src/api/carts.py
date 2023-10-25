@@ -83,15 +83,15 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 cost += (quantity * price)
             
             connection.execute(sqlalchemy.text("""
-                UPDATE catalog
-                SET inventory = catalog.inventory - cart_items.quantity
+                INSERT INTO catalog_tracker (sku, change)
+                VALUES(catalog.sku, -cart_items.quantity)
                 FROM cart_items
                 WHERE catalog.id = cart_items.catalog_id and cart_items.cart_id = :cart_id
                 """), [{"cart_id": cart_id}])
             
             connection.execute(sqlalchemy.text("""
-                UPDATE global_inventory
-                SET gold = global_inventory.gold - :cost
+                INSERT INTO global_inventory (gold)
+                VALUES(:cost)
                 """), [{"cost": cost}])
         
     return {"total_potions_bought": pots_bought, "total_gold_paid": cost}
