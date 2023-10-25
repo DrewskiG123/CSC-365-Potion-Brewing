@@ -22,7 +22,7 @@ def get_catalog():
             catalog.append({
                 "sku": sku, 
                 "name": name, 
-                "quantity": cur_quant,
+                "quantity": cur_quant.first()._data[0],
                 "potion_type": potion_type, 
                 "price": price})
 

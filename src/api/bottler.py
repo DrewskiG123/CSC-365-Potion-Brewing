@@ -43,9 +43,11 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
             g_ml_used += pot.potion_type[1] * pot.quantity  # green ml used in these pots
             b_ml_used += pot.potion_type[2] * pot.quantity  # blue ml used in these pots
             d_ml_used += pot.potion_type[3] * pot.quantity  # dark ml used in these pots
-            connection.execute(sqlalchemy.text(
-                "UPDATE catalog SET quantity = quantity + :add_quant WHERE potion_type = :type"), 
-                [{"add_quant": pot.quantity, "type": pot.potion_type}])
+            connection.execute(sqlalchemy.text("""
+                INSERT INTO catalog_tracker (sku, change)
+                SELECT catalog.sku, :change
+                FROM catalog WHERE catalog.potion_type = :potion_type
+            """), [{"change": pot.quantity, "potion_type": pot.potion_type}])
         
         profit += r_ml_used * r_ppm # cost of red component in these pots
         profit += g_ml_used * g_ppm # cost of green component in these pots
@@ -53,13 +55,9 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
         profit += d_ml_used * d_ppm # cost of dark component in these pots
         
         connection.execute(sqlalchemy.text("""
-            UPDATE global_inventory 
-            SET num_red_ml = num_red_ml - :r_ml_used,
-                num_green_ml = num_green_ml - :g_ml_used,
-                num_blue_ml = num_blue_ml - :b_ml_used,
-                num_dark_ml = num_dark_ml - :d_ml_used,
-                gold = gold + :profit
-            WHERE id = 0 """), 
+            INSERT INTO global_inventory
+            VALUES (:r_ml_added, :g_ml_added, :b_ml_added, :d_ml_added, :profit)
+        """),
         [{"r_ml_used": r_ml_used, "g_ml_used": g_ml_used, "b_ml_used": b_ml_used, "d_ml_used": d_ml_used, "profit": profit}])
 
     return "OK"
@@ -72,14 +70,31 @@ class State(BaseModel):
     dark_ml: int
     my_pots: list[PotionInventory]
 
-def mix_potions(state: State):
+def mix_potions(state: State, color_weight: list[int]):
     '''
-    The logic that determines the bottling plan based on my current shop state.
+    The logic that determines the bottling plan based on my current shop state (very simple currently).
     Returns the bottle plan.
     '''
     plan = []
     for pot in state.my_pots:
         print(pot)
+        if pot.quantity < 10: # if I have <10 and enough mils to make one
+            if (pot.potion_type[0] < state.red_ml and 
+                pot.potion_type[1] < state.green_ml and 
+                pot.potion_type[2] < state.blue_ml and 
+                pot.potion_type[3] < state.dark_ml):
+                plan.append(
+                    {
+                        "potion_type": pot.potion_type,
+                        "quantity": 1
+                    }
+                )
+                state.red_ml -= pot.potion_type[0]
+                state.blue_ml -= pot.potion_type[1]
+                state.green_ml -= pot.potion_type[2]
+                state.dark_ml -= pot.potion_type[3]
+
+
     return plan
 
 # Gets called 4 times a day
@@ -98,26 +113,32 @@ def get_bottle_plan():
     # Initial logic: bottle all barrels into red potions.
 
     with db.engine.begin() as connection:
-        glbl_inv = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        # fr is the first row of global_inventory
-        fr = glbl_inv.first()
-        r_ml_held = fr.num_red_ml
-        g_ml_held = fr.num_green_ml
-        b_ml_held = fr.num_blue_ml
-        d_ml_held = fr.num_dark_ml
+        r_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_red_ml) FROM global_inventory"))
+        g_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_green_ml) FROM global_inventory"))
+        b_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_blue_ml) FROM global_inventory"))
+        d_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_dark_ml) FROM global_inventory"))
+        r = r_ml_held.first()._data[0]
+        g = g_ml_held.first()._data[0]
+        b = b_ml_held.first()._data[0]
+        d = d_ml_held.first()._data[0]
+
+        color_weight = [0,0,0,0]
         
         pots_held = []
-        ctlg = connection.execute(sqlalchemy.text("SELECT potion_type, quantity FROM catalog"))
-        for type, quant in ctlg:
+        ctlg = connection.execute(sqlalchemy.text("SELECT sku, potion_type FROM catalog"))
+        for sku, potion_type in ctlg:
+            cur_quant = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker WHERE sku = :sku"), [{"sku": sku}])
             pots_held.append({
-                "potion_type": type,
-                "quantity": quant
+                "potion_type": potion_type,
+                "quantity": cur_quant.first()._data[0]
             })
+            for i in range(4):
+                color_weight[i] += potion_type[i]
 
-    state = State(red_ml=r_ml_held, 
-                  green_ml=g_ml_held,
-                  blue_ml=b_ml_held,
-                  dark_ml=d_ml_held,
+    state = State(red_ml=r, 
+                  green_ml=g,
+                  blue_ml=b,
+                  dark_ml=d,
                   my_pots=pots_held)
     
-    return mix_potions(state)
+    return mix_potions(state, color_weight)

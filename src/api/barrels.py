@@ -48,12 +48,12 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
             sqlalchemy.text(
             """ INSERT INTO global_inventory
                 VALUES (:r_ml_added, :g_ml_added, :b_ml_added, :d_ml_added, :cost)
-            """), [{"r_ml_added": r_ml_added, "g_ml_added": g_ml_added, "b_ml_added": b_ml_added, "d_ml_added": d_ml_added, "cost": -cost}]) 
+            """), [{"r_ml_added": r_ml_added, "g_ml_added": g_ml_added, "b_ml_added": b_ml_added, 
+                    "d_ml_added": d_ml_added, "cost": -cost}]) 
 
     return "OK"
 
-def make_barrel_plan(r_mls: int, g_mls: int, b_mls: int, d_mls: int, 
-                     gold: int, b_cat: list[Barrel]):
+def make_barrel_plan(r_mls: int, g_mls: int, b_mls: int, d_mls: int, gold: int, b_cat: list[Barrel]):
     """ currently very simple logic on how to buy barrels """
     plan = []
 
