@@ -45,7 +45,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 
     with db.engine.begin() as connection:
         connection.execute(
-            sqlalchemy.text( # change to insert statement !!!!!!!!!!!!!!!!!!!!!!!
+            sqlalchemy.text(
             """ INSERT INTO global_inventory
                 VALUES (:r_ml_added, :g_ml_added, :b_ml_added, :d_ml_added, :cost)
             """), [{"r_ml_added": r_ml_added, "g_ml_added": g_ml_added, "b_ml_added": b_ml_added, "d_ml_added": d_ml_added, "cost": -cost}]) 
