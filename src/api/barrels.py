@@ -45,15 +45,10 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 
     with db.engine.begin() as connection:
         connection.execute(
-            sqlalchemy.text(
-            """ UPDATE global_inventory 
-                SET num_red_ml = num_red_ml + :r_ml_added,
-                    num_green_ml = num_green_ml + :g_ml_added,
-                    num_blue_ml = num_blue_ml + :b_ml_added,
-                    num_dark_ml = num_dark_ml + :d_ml_added,
-                    gold = gold - :cost 
-                WHERE id = 0
-            """), [{"r_ml_added": r_ml_added, "g_ml_added": g_ml_added, "b_ml_added": b_ml_added, "d_ml_added": d_ml_added, "cost": cost}]) 
+            sqlalchemy.text( # change to insert statement !!!!!!!!!!!!!!!!!!!!!!!
+            """ INSERT INTO global_inventory
+                VALUES (:r_ml_added, :g_ml_added, :b_ml_added, :d_ml_added, :cost)
+            """), [{"r_ml_added": r_ml_added, "g_ml_added": g_ml_added, "b_ml_added": b_ml_added, "d_ml_added": d_ml_added, "cost": -cost}]) 
 
     return "OK"
 
@@ -118,21 +113,17 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     Barrels go: rMed, rSmall, gMed, gSmall, bMed, bSmall, rMini, gMini, bMini
     """
     print(wholesale_catalog)
-
-    gold_held = -1
-    r_ml_held = -1
-    g_ml_held = -1
-    b_ml_held = -1
-    d_ml_held = -1
     
     with db.engine.begin() as connection:
-        glbl_inv = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        # fr is the first row of global_inventory
-        fr = glbl_inv.first()
-        r_ml_held = fr.num_red_ml
-        g_ml_held = fr.num_green_ml
-        b_ml_held = fr.num_blue_ml
-        d_ml_held = fr.num_dark_ml
-        gold_held = fr.gold
+        r_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_red_ml) FROM global_inventory"))
+        g_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_green_ml) FROM global_inventory"))
+        b_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_blue_ml) FROM global_inventory"))
+        d_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_dark_ml) FROM global_inventory"))
+        gold_held = connection.execute(sqlalchemy.text("SELECT SUM(gold) FROM global_inventory"))
+        r = r_ml_held.first()._data[0]
+        g = g_ml_held.first()._data[0]
+        b = b_ml_held.first()._data[0]
+        d = d_ml_held.first()._data[0]
+        gold = gold_held.first()._data[0]
 
-    return make_barrel_plan(r_ml_held, g_ml_held, b_ml_held, d_ml_held, gold_held, wholesale_catalog)
+    return make_barrel_plan(r, g, b, d, gold, wholesale_catalog)
