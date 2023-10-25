@@ -15,8 +15,8 @@ def get_catalog():
     catalog = []
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT sku, name, potion_type, price FROM catalog"))
-        for sku, name, potion_type, price in result:
+        result = connection.execute(sqlalchemy.text("SELECT sku, name, quantity, potion_type, price FROM catalog"))
+        for sku, name, quantity, potion_type, price in result:
             cur_quant = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker WHERE sku = :sku"), [{"sku": sku}])
             print(f"{{\n\tname: {name},\n\tsku: {sku},\n\tpotion_type: {potion_type},\n\tquantity: {cur_quant},\n\tprice: {price}\n}}")
             catalog.append({
