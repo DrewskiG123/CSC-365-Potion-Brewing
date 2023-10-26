@@ -53,7 +53,7 @@ def get_cart(cart_id: int):
         for cat_id, quant in items_result:
             cart_items_lst.append({
                 "catalog_id": cat_id,
-                "quant": quant
+                "quantity": quant
             })
 
     return {
@@ -84,7 +84,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         cost = 0
         with db.engine.begin() as connection:
             result = connection.execute(sqlalchemy.text("""
-                SELECT id, price, quantity FROM catalog
+                SELECT id, price, catalog.quantity FROM catalog
                 JOIN cart_items ON cart_items.catalog_id = catalog.id
                 """), [{"cart_id": cart_id}])
 
@@ -92,13 +92,31 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 print("id:", id, ", price:", price, ", # bought:", quantity)
                 pots_bought += quantity
                 cost += (quantity * price)
-            
-            connection.execute(sqlalchemy.text("""
-                INSERT INTO catalog_tracker (sku, change)
-                VALUES(catalog.sku, -cart_items.quantity)
-                FROM cart_items
-                WHERE catalog.id = cart_items.catalog_id and cart_items.cart_id = :cart_id
-                """), [{"cart_id": cart_id}])
+
+                connection.execute(sqlalchemy.text("""
+                    INSERT INTO catalog_tracker (sku, potion_type, change)
+                    SELECT catalog.sku, catalog.potion_type, :quantity
+                    FROM catalog WHERE catalog.id = :id
+                    """), [{"id": id, "quantity": (0-quantity)}])
+
+                sku_cursor = connection.execute(sqlalchemy.text("""
+                    SELECT sku FROM catalog
+                    WHERE catalog.id = :id
+                """), [{"id":id}])
+                sku_received = sku_cursor.first()._data[0]
+                
+                sum_cursor = connection.execute(sqlalchemy.text("""
+                    SELECT SUM(change) 
+                    FROM catalog_tracker
+                    WHERE catalog_tracker.sku = :sku
+                """), [{"sku": sku_received}])
+                sum = sum_cursor.first()._data[0]
+                
+                connection.execute(sqlalchemy.text("""
+                    UPDATE catalog
+                    SET quantity = :sum
+                    WHERE id = :id
+                """), [{"sum": sum, "id": id}])
             
             connection.execute(sqlalchemy.text("""
                 INSERT INTO global_inventory (gold)
