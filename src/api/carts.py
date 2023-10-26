@@ -11,6 +11,17 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],
 )
 
+# GOES SOMEWHERE BUT FIGURING OUT WHERE
+# price per ml by color
+    # r_ppm = .5  # so a red potion is .5 * 100 = 50 gold
+    # g_ppm = .5  # same for green
+    # b_ppm = .6  # blue is .6 * 100 = 60 gold
+    # d_ppm = .65 # dark is .65 * 100 = 65 gold
+    # other potions will be multiplied by these constants to get their sale price
+    #                     [r , g, b , d]   (r_ml * r_ppm) + (b_ml * b_ppm)
+    # ex: Purple potion = [50, 0, 50, 0], so (50 * .5)    +   (50 * .6) = 25 + 30 = 55, 
+    # so purple will cost 55 gold
+
 class CartItem(BaseModel):
     quantity: int
 

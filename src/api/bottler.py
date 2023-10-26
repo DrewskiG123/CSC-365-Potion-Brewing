@@ -21,21 +21,10 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ Handling inventory after bottling """
     print(potions_delivered)
 
-    # price per ml by color
-    r_ppm = .5  # so a red potion is .5 * 100 = 50 gold
-    g_ppm = .5  # same for green
-    b_ppm = .6  # blue is .6 * 100 = 60 gold
-    d_ppm = .65 # dark is .65 * 100 = 65 gold
-    # other potions will be multiplied by these constants to get their sale price
-    #                     [r , g, b , d]   (r_ml * r_ppm) + (b_ml * b_ppm)
-    # ex: Purple potion = [50, 0, 50, 0], so (50 * .5)    +   (50 * .6) = 25 + 30 = 55, 
-    # so purple will cost 55 gold
-
     r_ml_used = 0
     g_ml_used = 0
     b_ml_used = 0
     d_ml_used = 0
-    profit = 0
 
     with db.engine.begin() as connection: # this should work regardless of how many pots or what type
         for pot in potions_delivered:
@@ -44,21 +33,34 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
             b_ml_used += pot.potion_type[2] * pot.quantity  # blue ml used in these pots
             d_ml_used += pot.potion_type[3] * pot.quantity  # dark ml used in these pots
             connection.execute(sqlalchemy.text("""
-                INSERT INTO catalog_tracker (sku, change)
-                SELECT catalog.sku, :change
+                INSERT INTO catalog_tracker (sku, potion_type, change)
+                SELECT catalog.sku, :potion_type, :change
                 FROM catalog WHERE catalog.potion_type = :potion_type
             """), [{"change": pot.quantity, "potion_type": pot.potion_type}])
+
+            sum_cursor = connection.execute(sqlalchemy.text("""
+                SELECT SUM(change) 
+                FROM catalog_tracker 
+                WHERE potion_type = :potion_type
+            """), [{"potion_type": pot.potion_type}])
+            sum = sum_cursor.first()._data[0]
+            
+            connection.execute(sqlalchemy.text("""
+                UPDATE catalog
+                SET quantity = :sum
+                WHERE potion_type = :potion_type
+            """), [{"sum": sum, "potion_type": pot.potion_type}])
         
-        profit += r_ml_used * r_ppm # cost of red component in these pots
-        profit += g_ml_used * g_ppm # cost of green component in these pots
-        profit += b_ml_used * b_ppm # cost of blue component in these pots
-        profit += d_ml_used * d_ppm # cost of dark component in these pots
+        # profit += r_ml_used * r_ppm # cost of red component in these pots
+        # profit += g_ml_used * g_ppm # cost of green component in these pots
+        # profit += b_ml_used * b_ppm # cost of blue component in these pots
+        # profit += d_ml_used * d_ppm # cost of dark component in these pots
         
         connection.execute(sqlalchemy.text("""
-            INSERT INTO global_inventory
-            VALUES (:r_ml_added, :g_ml_added, :b_ml_added, :d_ml_added, :profit)
+            INSERT INTO global_inventory (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml)
+            VALUES (:r_ml_used, :g_ml_used, :b_ml_used, :d_ml_used)
         """),
-        [{"r_ml_used": r_ml_used, "g_ml_used": g_ml_used, "b_ml_used": b_ml_used, "d_ml_used": d_ml_used, "profit": profit}])
+        [{"r_ml_used": -r_ml_used, "g_ml_used": -g_ml_used, "b_ml_used": -b_ml_used, "d_ml_used": -d_ml_used}])
 
     return "OK"
 
@@ -75,25 +77,41 @@ def mix_potions(state: State, color_weight: list[int]):
     The logic that determines the bottling plan based on my current shop state (very simple currently).
     Returns the bottle plan.
     '''
+    print(state)
+
     plan = []
     for pot in state.my_pots:
         print(pot)
-        if pot.quantity < 10: # if I have <10 and enough mils to make one
-            if (pot.potion_type[0] < state.red_ml and 
-                pot.potion_type[1] < state.green_ml and 
-                pot.potion_type[2] < state.blue_ml and 
-                pot.potion_type[3] < state.dark_ml):
-                plan.append(
-                    {
-                        "potion_type": pot.potion_type,
-                        "quantity": 1
-                    }
-                )
+        added = 0
+        # need_clr = [False, False, False, False]
+        if pot.quantity < 10:
+            # if pot.potion_type[0] > 0: 
+            #     need_clr[0] = True
+            # if pot.potion_type[1] > 0:
+            #     need_clr[1] = True
+            # if pot.potion_type[2] > 0: 
+            #     need_clr[2] = True
+            # if pot.potion_type[3] > 0: 
+            #     need_clr[3] = True
+
+            # if I have less than 10, make as many as I can of each starting from the top
+            while ((state.red_ml-pot.potion_type[0]) >= 0 and 
+                   (state.green_ml-pot.potion_type[1]) >= 0 and 
+                   (state.blue_ml-pot.potion_type[2]) >= 0 and 
+                   (state.dark_ml-pot.potion_type[3]) >= 0):
+                added += 1
                 state.red_ml -= pot.potion_type[0]
                 state.blue_ml -= pot.potion_type[1]
                 state.green_ml -= pot.potion_type[2]
                 state.dark_ml -= pot.potion_type[3]
-
+                    
+            if added > 0:
+                plan.append(
+                    {
+                        "potion_type": pot.potion_type,
+                        "quantity": added
+                    }
+                )
 
     return plan
 
@@ -125,12 +143,18 @@ def get_bottle_plan():
         color_weight = [0,0,0,0]
         
         pots_held = []
-        ctlg = connection.execute(sqlalchemy.text("SELECT sku, potion_type FROM catalog"))
-        for sku, potion_type in ctlg:
-            cur_quant = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker WHERE sku = :sku"), [{"sku": sku}])
+        ctlg = connection.execute(sqlalchemy.text("SELECT sku, potion_type, quantity FROM catalog"))
+        for sku, potion_type, quantity in ctlg:
+            # cur_quant = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker WHERE sku = :sku"), [{"sku": sku}])
+            print("type:", potion_type, "quant:", quantity)
+            # if cur_quant.first()._data[0] != quantity:
+            #     quant = quantity
+            # else:
+            #     quant = cur_quant.first()._data[0]
+
             pots_held.append({
                 "potion_type": potion_type,
-                "quantity": cur_quant.first()._data[0]
+                "quantity": quantity
             })
             for i in range(4):
                 color_weight[i] += potion_type[i]
