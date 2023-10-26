@@ -44,9 +44,10 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         cost += (barrel.price * barrel.quantity)
 
     with db.engine.begin() as connection:
+        print("r:", r_ml_added, "gold:", -cost, "g:", g_ml_added, "b:", b_ml_added, "d:", d_ml_added)
         connection.execute(
             sqlalchemy.text(
-            """ INSERT INTO global_inventory
+            """ INSERT INTO global_inventory (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, gold)
                 VALUES (:r_ml_added, :g_ml_added, :b_ml_added, :d_ml_added, :cost)
             """), [{"r_ml_added": r_ml_added, "g_ml_added": g_ml_added, "b_ml_added": b_ml_added, 
                     "d_ml_added": d_ml_added, "cost": -cost}]) 
@@ -79,8 +80,11 @@ def make_barrel_plan(r_mls: int, g_mls: int, b_mls: int, d_mls: int, gold: int, 
 
     if needed > 0: # if some barrels are needed
         gold_per_color = gold//needed
+        if gold_per_color < 60: # if I don't have enough, just buy some starting from red
+            gold_per_color = gold
+
         for barrel in b_cat:
-            if barrel.price < gold_per_color and barrel.price < gold: 
+            if barrel.price <= gold_per_color and barrel.price <= gold: 
                 if barrel.potion_type[0] == 1 and need_r == True: # if its an affordable red barrel
                     need_r = False
                 elif barrel.potion_type[1] == 1 and need_g == True: # if its an affordable green barrel
