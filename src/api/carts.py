@@ -82,6 +82,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     if cart_checkout != None and cart_checkout.payment != None: # offered payment
         pots_bought = 0
         cost = 0
+        # There's gotta be a more efficent way to do this
         with db.engine.begin() as connection:
             result = connection.execute(sqlalchemy.text("""
                 SELECT id, price, catalog.quantity FROM catalog
