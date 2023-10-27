@@ -72,6 +72,11 @@ class State(BaseModel):
     dark_ml: int
     my_pots: list[PotionInventory]
 
+def print_state(state: State):
+    print(f"\nSHOP STATE:\nr_ml: {state.red_ml},\ng_ml: {state.green_ml},\nb_ml: {state.blue_ml},\nd_ml: {state.dark_ml}\n\nPOTIONS:")
+    for pot in state.my_pots:
+        print(f"type: {pot.potion_type}, quantity: {pot.quantity}")
+
 def mix_potions(state: State, color_weight: list[int]):
     '''
     The logic that determines the bottling plan based on my current shop state (very simple currently).
@@ -81,7 +86,7 @@ def mix_potions(state: State, color_weight: list[int]):
 
     plan = []
     for pot in state.my_pots:
-        print(pot)
+        print("\nPOT:",pot,"\n")
         added = 0
         # need_clr = [False, False, False, False]
         if pot.quantity < 10:
@@ -99,10 +104,11 @@ def mix_potions(state: State, color_weight: list[int]):
                    (state.green_ml-pot.potion_type[1]) >= 0 and 
                    (state.blue_ml-pot.potion_type[2]) >= 0 and 
                    (state.dark_ml-pot.potion_type[3]) >= 0):
+                print_state(state)
                 added += 1
                 state.red_ml -= pot.potion_type[0]
-                state.blue_ml -= pot.potion_type[1]
-                state.green_ml -= pot.potion_type[2]
+                state.green_ml -= pot.potion_type[1]
+                state.blue_ml -= pot.potion_type[2]
                 state.dark_ml -= pot.potion_type[3]
                     
             if added > 0:
@@ -143,7 +149,7 @@ def get_bottle_plan():
         color_weight = [0,0,0,0]
         
         pots_held = []
-        ctlg = connection.execute(sqlalchemy.text("SELECT sku, potion_type, quantity FROM catalog"))
+        ctlg = connection.execute(sqlalchemy.text("SELECT sku, potion_type, quantity FROM catalog ORDER BY id"))
         for sku, potion_type, quantity in ctlg:
             # cur_quant = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker WHERE sku = :sku"), [{"sku": sku}])
             print("type:", potion_type, "quant:", quantity)
