@@ -152,6 +152,9 @@ def get_bottle_plan():
             # else:
             #     quant = cur_quant.first()._data[0]
 
+            if quantity == None:
+                quantity = 0
+
             pots_held.append({
                 "potion_type": potion_type,
                 "quantity": quantity

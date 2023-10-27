@@ -25,6 +25,8 @@ def get_inventory():
 
         pots = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker"))
         pot_count = pots.first()._data[0]
+        if pot_count == None:
+            pot_count = 0
         
         ml_sum = connection.execute(sqlalchemy.text("""
             SELECT SUM(num_red_ml + num_blue_ml + num_green_ml + num_dark_ml) FROM global_inventory"""))
