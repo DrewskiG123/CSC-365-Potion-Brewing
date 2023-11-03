@@ -189,8 +189,8 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 """), [{"sum": sum, "id": id}])
             
             connection.execute(sqlalchemy.text("""
-                INSERT INTO global_inventory (gold)
-                VALUES(:cost)
+                INSERT INTO global_inventory (num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, gold)
+                VALUES(0, 0, 0, 0, :cost)
                 """), [{"cost": cost}])
         
     return {"total_potions_bought": pots_bought, "total_gold_paid": cost}
