@@ -124,7 +124,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ Updates the cart with the desired commoditites """
     with db.engine.begin() as connection:
         ctlg_stuff = connection.execute(sqlalchemy.text("SELECT id FROM catalog WHERE sku = :item_sku"), [{"item_sku": item_sku}])
-        ctlg_id = ctlg_stuff.first()._data[0]
+        ctlg_id = ctlg_stuff.scalar_one()   # first()._data[0]
         print("catalog id received:", ctlg_id)
         connection.execute(sqlalchemy.text("""
             INSERT INTO cart_items (cart_id, quantity, catalog_id)
@@ -173,14 +173,14 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                     SELECT sku FROM catalog
                     WHERE catalog.id = :id
                 """), [{"id":id}])
-                sku_received = sku_cursor.first()._data[0]
+                sku_received = sku_cursor.scalar_one()  # first()._data[0]
                 
                 sum_cursor = connection.execute(sqlalchemy.text("""
                     SELECT SUM(change) 
                     FROM catalog_tracker
                     WHERE catalog_tracker.sku = :sku
                 """), [{"sku": sku_received}])
-                sum = sum_cursor.first()._data[0]
+                sum = sum_cursor.scalar_one()   # first()._data[0]
                 
                 connection.execute(sqlalchemy.text("""
                     UPDATE catalog

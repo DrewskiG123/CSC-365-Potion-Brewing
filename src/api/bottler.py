@@ -43,7 +43,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                 FROM catalog_tracker 
                 WHERE potion_type = :potion_type
             """), [{"potion_type": pot.potion_type}])
-            sum = sum_cursor.first()._data[0]
+            sum = sum_cursor.scalar_one()   # first()._data[0]
             
             connection.execute(sqlalchemy.text("""
                 UPDATE catalog
@@ -141,10 +141,10 @@ def get_bottle_plan():
         g_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_green_ml) FROM global_inventory"))
         b_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_blue_ml) FROM global_inventory"))
         d_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_dark_ml) FROM global_inventory"))
-        r = r_ml_held.first()._data[0]
-        g = g_ml_held.first()._data[0]
-        b = b_ml_held.first()._data[0]
-        d = d_ml_held.first()._data[0]
+        r = r_ml_held.scalar_one()  # first()._data[0]
+        g = g_ml_held.scalar_one()  # first()._data[0]
+        b = b_ml_held.scalar_one()  # first()._data[0]
+        d = d_ml_held.scalar_one()  # first()._data[0]
 
         color_weight = [0,0,0,0]
         
@@ -153,10 +153,10 @@ def get_bottle_plan():
         for sku, potion_type, quantity in ctlg:
             # cur_quant = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM catalog_tracker WHERE sku = :sku"), [{"sku": sku}])
             print("type:", potion_type, "quant:", quantity)
-            # if cur_quant.first()._data[0] != quantity:
+            # if cur_quant.scalar_one() # first()._data[0] != quantity:
             #     quant = quantity
             # else:
-            #     quant = cur_quant.first()._data[0]
+            #     quant = cur_quant.scalar_one()    # first()._data[0]
 
             if quantity == None:
                 quantity = 0

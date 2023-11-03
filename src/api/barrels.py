@@ -124,10 +124,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         b_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_blue_ml) FROM global_inventory"))
         d_ml_held = connection.execute(sqlalchemy.text("SELECT SUM(num_dark_ml) FROM global_inventory"))
         gold_held = connection.execute(sqlalchemy.text("SELECT SUM(gold) FROM global_inventory"))
-        r = r_ml_held.first()._data[0]
-        g = g_ml_held.first()._data[0]
-        b = b_ml_held.first()._data[0]
-        d = d_ml_held.first()._data[0]
-        gold = gold_held.first()._data[0]
+        r = r_ml_held.scalar_one()  # first()._data[0]
+        g = g_ml_held.scalar_one()  # first()._data[0]
+        b = b_ml_held.scalar_one()  # first()._data[0]
+        d = d_ml_held.scalar_one()  # first()._data[0]
+        gold = gold_held. scalar_one()  # first()._data[0]
 
     return make_barrel_plan(r, g, b, d, gold, wholesale_catalog)
