@@ -154,9 +154,9 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         # There's gotta be a more efficent way to do this
         with db.engine.begin() as connection:
             result = connection.execute(sqlalchemy.text("""
-                SELECT id, price, catalog.quantity FROM catalog
+                SELECT DISTINCT id, price, catalog.quantity FROM catalog
                 JOIN cart_items ON cart_items.catalog_id = catalog.id
-                """), [{"cart_id": cart_id}])
+                """)) #, [{"cart_id": cart_id}] #
 
             for id, price, quantity in result:
                 print("id:", id, ", price:", price, ", # bought:", quantity)
