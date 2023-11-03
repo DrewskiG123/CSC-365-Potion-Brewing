@@ -127,14 +127,12 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
         ctlg_id = ctlg_stuff.first()._data[0]
         print("catalog id received:", ctlg_id)
         connection.execute(sqlalchemy.text("""
-            IF EXISTS (SELECT quantity FROM cart_items WHERE cart_id = :cart_id AND catalog_id = :ctlg_id) THEN
-                UPDATE cart_items SET quantity = quantity + :quantity
-                WHERE cart_id = :cart_id AND catalog_id = :ctlg_id
-            END IF;
-            ELSE
-              INSERT INTO cart_items (cart_id, quantity, catalog_id)
-              SELECT :cart_id, :quantity, catalog.id
-              FROM catalog WHERE catalog.sku = :item_sku
+            INSERT INTO cart_items (cart_id, quantity, catalog_id)
+            SELECT :cart_id, :quantity, catalog.id
+            FROM catalog WHERE catalog.sku = :item_sku
+            ON CONFLICT (cart_id, catalog_id)
+            DO 
+                UPDATE SET quantity = cart_items.quantity + :quantity;
         """), [{"cart_id": cart_id, "ctlg_id": ctlg_id, "quantity": cart_item.quantity, "item_sku": item_sku}])
         # connection.execute(sqlalchemy.text("""
         #     INSERT INTO cart_items (cart_id, quantity, catalog_id)
