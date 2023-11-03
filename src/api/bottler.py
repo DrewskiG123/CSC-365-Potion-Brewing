@@ -118,6 +118,8 @@ def mix_potions(state: State, color_weight: list[int]):
                         "quantity": added
                     }
                 )
+    
+    print(plan)
 
     return plan
 
